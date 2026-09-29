@@ -55,12 +55,12 @@ export default function App() {
             <Route path="/assets" element={<Assets />} />
             <Route path="/assets/:id" element={<AssetDetail />} />
 
-            <Route path="/requests" element={<Requests scope="mine" />} />
+            <Route path="/requests" element={<Requests key="mine" scope="mine" />} />
             <Route
               path="/requests/all"
               element={
                 <RequireRole roles={['MANAGER', 'DIRECTOR']}>
-                  <Requests scope="all" />
+                  <Requests key="all" scope="all" />
                 </RequireRole>
               }
             />

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 /* ---------- Dinh dang ---------- */
 
@@ -191,4 +191,46 @@ export function deptLabel(dept) {
 
 export function branchIdOf(dept) {
   return dept?.branch?.id ?? dept?.branchId ?? null;
+}
+
+
+/* ---------- Phan trang & debounce ---------- */
+
+/**
+ * Thanh phan trang dung chung cho moi bang lay du lieu tu API co phan trang.
+ * `page` la chi so 0-based, khop voi PageResponse cua backend.
+ */
+export function Pagination({ page, totalPages, totalElements, onChange, unit = 'bản ghi' }) {
+  return (
+    <div className="pagination">
+      <span>
+        Trang {totalPages === 0 ? 0 : page + 1} / {totalPages} · {totalElements} {unit}
+      </span>
+      <div className="btn-row">
+        <button className="btn btn-sm" disabled={page === 0} onClick={() => onChange(page - 1)}>
+          Trước
+        </button>
+        <button
+          className="btn btn-sm"
+          disabled={page + 1 >= totalPages}
+          onClick={() => onChange(page + 1)}
+        >
+          Sau
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Tra ve gia tri sau khi nguoi dung ngung go `delay` ms, de o tim kiem khong
+ * goi API o moi phim bam.
+ */
+export function useDebouncedValue(value, delay = 350) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
 }

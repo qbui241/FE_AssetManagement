@@ -1,50 +1,70 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { assetHistoryApi } from '../api/endpoints';
-import { Alert, Empty, Loading, Panel, formatDateTime } from '../components/ui';
+import {
+  Alert,
+  Empty,
+  Loading,
+  Pagination,
+  Panel,
+  formatDateTime,
+  useDebouncedValue,
+} from '../components/ui';
+
+const PAGE_SIZE = 20;
 
 export default function AssetHistories() {
-  const [histories, setHistories] = useState([]);
+  const [result, setResult] = useState(null);
+  const [openCount, setOpenCount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [q, setQ] = useState('');
   const [openOnly, setOpenOnly] = useState(false);
+  const [page, setPage] = useState(0);
+
+  // Chi goi API sau khi nguoi dung ngung go, tranh 1 request cho moi phim bam.
+  const keyword = useDebouncedValue(q.trim());
 
   useEffect(() => {
+    let alive = true;
+    setLoading(true);
     assetHistoryApi
-      .list()
+      .list({ q: keyword, openOnly, page, size: PAGE_SIZE })
       .then((res) => {
-        setHistories(
-          [...(res ?? [])].sort((a, b) => new Date(b.assignedAt) - new Date(a.assignedAt))
-        );
+        if (!alive) return;
+        setResult(res);
         setError('');
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => alive && setError(err.message))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, [keyword, openOnly, page]);
+
+  // Tong so luot muon chua tra (khong phu thuoc bo loc dang chon) - chi can dem, size=1.
+  useEffect(() => {
+    assetHistoryApi
+      .list({ openOnly: true, page: 0, size: 1 })
+      .then((res) => setOpenCount(res.totalElements))
+      .catch(() => setOpenCount(null));
   }, []);
 
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return histories.filter((h) => {
-      if (openOnly && h.returnedAt) return false;
-      if (!needle) return true;
-      return [h.assetName, h.assetCode, h.userName, h.userEmail]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(needle));
-    });
-  }, [histories, q, openOnly]);
-
-  const outstanding = histories.filter((h) => !h.returnedAt).length;
+  const histories = result?.content ?? [];
+  const total = result?.totalElements ?? 0;
+  const filtering = Boolean(keyword) || openOnly;
 
   return (
     <>
       <Alert kind="error">{error}</Alert>
 
       <Panel
-        title={`Lịch sử cấp phát (${filtered.length})`}
+        title={`Lịch sử cấp phát (${total})`}
         description={
-          outstanding > 0
-            ? `Đang có ${outstanding} lượt mượn chưa trả.`
-            : 'Tất cả lượt mượn đều đã được trả.'
+          openCount == null
+            ? undefined
+            : openCount > 0
+              ? `Đang có ${openCount} lượt mượn chưa trả.`
+              : 'Tất cả lượt mượn đều đã được trả.'
         }
         bodyless
       >
@@ -53,61 +73,79 @@ export default function AssetHistories() {
             <input
               placeholder="Tìm theo tài sản hoặc người mượn…"
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(0);
+              }}
               style={{ minWidth: 240 }}
             />
             <button
               className={`btn btn-sm ${openOnly ? 'btn-primary' : ''}`}
-              onClick={() => setOpenOnly((v) => !v)}
+              onClick={() => {
+                setOpenOnly((v) => !v);
+                setPage(0);
+              }}
             >
               Chỉ lượt chưa trả
             </button>
           </div>
         </div>
 
-        {loading ? (
+        {loading && !result ? (
           <Loading />
-        ) : filtered.length === 0 ? (
+        ) : histories.length === 0 ? (
           <Empty
-            title={histories.length ? 'Không có lượt mượn khớp bộ lọc' : 'Chưa có lượt mượn nào'}
+            title={filtering ? 'Không có lượt mượn khớp bộ lọc' : 'Chưa có lượt mượn nào'}
           />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Tài sản</th>
-                  <th>Người mượn</th>
-                  <th>Nhận lúc</th>
-                  <th>Trả lúc</th>
-                  <th>Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((h) => (
-                  <tr key={h.id}>
-                    <td>
-                      <div className="cell-title">{h.assetName}</div>
-                      <div className="cell-sub mono">{h.assetCode}</div>
-                    </td>
-                    <td>
-                      <div className="cell-title">{h.userName}</div>
-                      <div className="cell-sub">{h.userEmail}</div>
-                    </td>
-                    <td>{formatDateTime(h.assignedAt)}</td>
-                    <td>{h.returnedAt ? formatDateTime(h.returnedAt) : '—'}</td>
-                    <td>
-                      {h.returnedAt ? (
-                        <span className="badge badge-returned">Đã trả</span>
-                      ) : (
-                        <span className="badge badge-assigned">Đang giữ</span>
-                      )}
-                    </td>
+          <>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tài sản</th>
+                    <th className="num">SL</th>
+                    <th>Người mượn</th>
+                    <th>Nhận lúc</th>
+                    <th>Trả lúc</th>
+                    <th>Trạng thái</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {histories.map((h) => (
+                    <tr key={h.id}>
+                      <td>
+                        <div className="cell-title">{h.assetName}</div>
+                        <div className="cell-sub mono">{h.assetCode}</div>
+                      </td>
+                      <td className="num">{h.quantity ?? '—'}</td>
+                      <td>
+                        <div className="cell-title">{h.userName}</div>
+                        <div className="cell-sub">{h.userEmail}</div>
+                      </td>
+                      <td>{formatDateTime(h.assignedAt)}</td>
+                      <td>{h.returnedAt ? formatDateTime(h.returnedAt) : '—'}</td>
+                      <td>
+                        {h.returnedAt ? (
+                          <span className="badge badge-returned">Đã trả</span>
+                        ) : (
+                          <span className="badge badge-assigned">Đang giữ</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              page={page}
+              totalPages={result?.totalPages ?? 0}
+              totalElements={total}
+              onChange={setPage}
+              unit="lượt mượn"
+            />
+          </>
         )}
       </Panel>
     </>

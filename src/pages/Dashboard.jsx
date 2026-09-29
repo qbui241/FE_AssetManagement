@@ -20,7 +20,9 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [availableAssets, setAvailableAssets] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
+  const [pendingMine, setPendingMine] = useState(0);
   const [tasks, setTasks] = useState([]);
+  const [tasksTotal, setTasksTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -29,15 +31,20 @@ export default function Dashboard() {
     Promise.all([
       dashboardApi.stats().catch(() => null),
       assetApi.list().catch(() => []),
-      approvalRequestApi.listMine().catch(() => []),
-      canApprove ? approvalTaskApi.list({ status: 'PENDING' }).catch(() => []) : Promise.resolve([]),
+      // 6 yeu cau moi nhat de hien thi
+      approvalRequestApi.listMine({ page: 0, size: 6 }).catch(() => null),
+      // Chi can tong so yeu cau dang cho -> size=1, doc totalElements
+      approvalRequestApi.listMine({ status: 'PENDING', page: 0, size: 1 }).catch(() => null),
+      canApprove ? approvalTaskApi.mine({ page: 0, size: 5 }).catch(() => null) : Promise.resolve(null),
     ])
-      .then(([s, assets, r, t]) => {
+      .then(([s, assets, recent, pending, myTasks]) => {
         if (!alive) return;
         setStats(s);
         setAvailableAssets((assets ?? []).filter((a) => a.status === 'AVAILABLE'));
-        setMyRequests(r ?? []);
-        setTasks(t ?? []);
+        setMyRequests(recent?.content ?? []);
+        setPendingMine(pending?.totalElements ?? 0);
+        setTasks(myTasks?.content ?? []);
+        setTasksTotal(myTasks?.totalElements ?? 0);
       })
       .catch((err) => alive && setError(err.message))
       .finally(() => alive && setLoading(false));
@@ -47,8 +54,6 @@ export default function Dashboard() {
   }, [canApprove]);
 
   if (loading) return <Loading />;
-
-  const pendingMine = myRequests.filter((r) => r.status === 'PENDING').length;
 
   return (
     <>
@@ -74,7 +79,7 @@ export default function Dashboard() {
         {canApprove && (
           <div className="stat">
             <div className="label">Chờ tôi duyệt</div>
-            <div className="value pending">{tasks.length}</div>
+            <div className="value pending">{tasksTotal}</div>
           </div>
         )}
         <div className="stat">
@@ -143,7 +148,7 @@ export default function Dashboard() {
           title="Chờ tôi duyệt"
           description="Các bước phê duyệt đang đợi quyết định của bạn"
           actions={
-            tasks.length > 0 && (
+            tasksTotal > 0 && (
               <Link className="btn btn-sm" to="/tasks">
                 Xem tất cả
               </Link>
@@ -165,7 +170,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tasks.slice(0, 5).map((t) => (
+                  {tasks.map((t) => (
                     <tr key={t.id}>
                       <td>
                         <Link to={`/requests/${t.approvalRequestId}`}>
@@ -217,7 +222,7 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {myRequests.slice(0, 6).map((r) => (
+                {myRequests.map((r) => (
                   <tr key={r.id}>
                     <td>
                       <Link to={`/requests/${r.id}`}>#{r.id}</Link>

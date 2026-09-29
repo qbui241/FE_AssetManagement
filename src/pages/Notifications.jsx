@@ -1,31 +1,48 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationApi } from '../api/endpoints';
-import { Alert, Empty, Loading, Panel, formatDateTime } from '../components/ui';
+import { Alert, Empty, Loading, Pagination, Panel, formatDateTime } from '../components/ui';
+
+const PAGE_SIZE = 20;
+
+// Backend tra ve co "isRead"; neu con ban DTO cu dung boolean nguyen thuy thi
+// Jackson xuat ra "read". Chap nhan ca hai de khong phu thuoc phien ban backend.
+const isReadOf = (n) => Boolean(n.isRead ?? n.read);
 
 export default function Notifications() {
   const navigate = useNavigate();
-  const [items, setItems] = useState([]);
+  const [result, setResult] = useState(null);
+  const [unread, setUnread] = useState(0);
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const load = useCallback(() => {
     setLoading(true);
-    notificationApi
-      .list(unreadOnly)
-      .then((res) => {
-        setItems(res ?? []);
+    return Promise.all([
+      notificationApi.list({ unreadOnly, page, size: PAGE_SIZE }),
+      notificationApi.unreadCount().catch(() => null),
+    ])
+      .then(([res, count]) => {
+        if (res.content.length === 0 && res.page > 0) {
+          setPage(res.page - 1);
+          return;
+        }
+        setResult(res);
+        setUnread(count?.unreadCount ?? 0);
         setError('');
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [unreadOnly]);
+  }, [unreadOnly, page]);
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const open = async (n) => {
-    if (!n.isRead) {
+    if (!isReadOf(n)) {
       try {
         await notificationApi.markRead(n.id);
       } catch {
@@ -37,22 +54,28 @@ export default function Notifications() {
     else load();
   };
 
-  const unreadCount = items.filter((n) => !n.isRead).length;
+  const items = result?.content ?? [];
 
   return (
     <>
       <Alert kind="error">{error}</Alert>
 
       <Panel
-        title={`Thông báo${unreadCount ? ` (${unreadCount} chưa đọc)` : ''}`}
+        title={`Thông báo${unread ? ` (${unread} chưa đọc)` : ''}`}
         actions={
           <>
-            <button className="btn btn-sm" onClick={() => setUnreadOnly((v) => !v)}>
+            <button
+              className="btn btn-sm"
+              onClick={() => {
+                setUnreadOnly((v) => !v);
+                setPage(0);
+              }}
+            >
               {unreadOnly ? 'Xem tất cả' : 'Chỉ chưa đọc'}
             </button>
             <button
               className="btn btn-sm"
-              disabled={unreadCount === 0}
+              disabled={unread === 0}
               onClick={() =>
                 notificationApi
                   .markAllRead()
@@ -66,7 +89,7 @@ export default function Notifications() {
         }
         bodyless
       >
-        {loading ? (
+        {loading && !result ? (
           <Loading />
         ) : items.length === 0 ? (
           <Empty
@@ -74,28 +97,38 @@ export default function Notifications() {
             hint="Thông báo xuất hiện khi có yêu cầu cần bạn duyệt hoặc khi yêu cầu của bạn được xử lý."
           />
         ) : (
-          items.map((n) => (
-            <div
-              key={n.id}
-              className={`notif ${n.isRead ? '' : 'unread'}`}
-              role="button"
-              tabIndex={0}
-              style={{ cursor: 'pointer' }}
-              onClick={() => open(n)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  open(n);
-                }
-              }}
-            >
-              <div className="txt">
-                <strong>{n.title}</strong>
-                <p>{n.message}</p>
+          <>
+            {items.map((n) => (
+              <div
+                key={n.id}
+                className={`notif ${isReadOf(n) ? '' : 'unread'}`}
+                role="button"
+                tabIndex={0}
+                style={{ cursor: 'pointer' }}
+                onClick={() => open(n)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    open(n);
+                  }
+                }}
+              >
+                <div className="txt">
+                  <strong>{n.title}</strong>
+                  <p>{n.message}</p>
+                </div>
+                <div className="when">{formatDateTime(n.createdAt)}</div>
               </div>
-              <div className="when">{formatDateTime(n.createdAt)}</div>
-            </div>
-          ))
+            ))}
+
+            <Pagination
+              page={page}
+              totalPages={result?.totalPages ?? 0}
+              totalElements={result?.totalElements ?? 0}
+              onChange={setPage}
+              unit="thông báo"
+            />
+          </>
         )}
       </Panel>
     </>

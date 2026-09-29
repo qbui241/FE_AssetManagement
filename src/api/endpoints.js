@@ -1,6 +1,19 @@
 import { api } from './client';
 
 /**
+ * Ghep query string tu object, bo qua gia tri rong/null/undefined.
+ * Dung chung cho moi API danh sach co phan trang + loc.
+ */
+export function qs(params = {}) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') search.set(key, value);
+  });
+  const text = search.toString();
+  return text ? `?${text}` : '';
+}
+
+/**
  * Mot ham cho moi endpoint cua backend, dat ten theo controller tuong ung.
  * Giu tap trung o 1 cho de khi backend doi contract chi phai sua 1 file.
  */
@@ -60,27 +73,28 @@ export const attributeApi = {
 };
 
 export const approvalRequestApi = {
-  listAll: () => api.get('/api/approval-requests'),
-  listMine: () => api.get('/api/approval-requests/mine'),
+  // Tra ve PageResponse { content, page, size, totalElements, totalPages }.
+  // params: { status, page, size }
+  listAll: (params) => api.get(`/api/approval-requests${qs(params)}`),
+  listMine: (params) => api.get(`/api/approval-requests/mine${qs(params)}`),
   get: (id) => api.get(`/api/approval-requests/${id}`),
   tasksOf: (requestId) => api.get(`/api/approval-requests/${requestId}/tasks`),
   create: (payload) => api.post('/api/approval-requests', payload),
 };
 
 export const approvalTaskApi = {
-  list: ({ roleId, status } = {}) => {
-    const params = new URLSearchParams();
-    if (roleId) params.set('roleId', roleId);
-    if (status) params.set('status', status);
-    const qs = params.toString();
-    return api.get(`/api/approval-tasks${qs ? `?${qs}` : ''}`);
-  },
+  // "Cho toi duyet": chi gom task nguoi dung hien tai dang duoc phep xu ly.
+  // params: { page, size } -> PageResponse
+  mine: (params) => api.get(`/api/approval-tasks/mine${qs(params)}`),
+  // Toan bo task he thong, chi ADMIN goi duoc. params: { roleId, status, page, size }
+  list: (params) => api.get(`/api/approval-tasks${qs(params)}`),
   approve: (taskId) => api.post(`/api/approval-tasks/${taskId}/approve`),
   reject: (taskId) => api.post(`/api/approval-tasks/${taskId}/reject`),
 };
 
 export const notificationApi = {
-  list: (unreadOnly = false) => api.get(`/api/notifications?unreadOnly=${unreadOnly}`),
+  // params: { unreadOnly, page, size } -> PageResponse
+  list: (params) => api.get(`/api/notifications${qs(params)}`),
   unreadCount: () => api.get('/api/notifications/unread-count'),
   markRead: (id) => api.patch(`/api/notifications/${id}/read`),
   markAllRead: () => api.patch('/api/notifications/read-all'),
@@ -126,7 +140,8 @@ export const stepApi = {
 };
 
 export const auditLogApi = {
-  list: () => api.get('/api/audit-logs'),
+  // params: { action, entityType, from, to, page, size } -> PageResponse
+  list: (params) => api.get(`/api/audit-logs${qs(params)}`),
   byEntity: (entityType, entityId) =>
     api.get(`/api/audit-logs/entity?entityType=${entityType}&entityId=${entityId}`),
 };
@@ -136,12 +151,6 @@ export const dashboardApi = {
 };
 
 export const assetHistoryApi = {
-  // Ca 2 tham so deu tuy chon; bo trong se lay toan bo lich su trong pham vi.
-  list: ({ assetId, userId } = {}) => {
-    const params = new URLSearchParams();
-    if (assetId) params.set('assetId', assetId);
-    if (userId) params.set('userId', userId);
-    const qs = params.toString();
-    return api.get(`/api/asset-histories${qs ? `?${qs}` : ''}`);
-  },
+  // params: { assetId, userId, openOnly, q, page, size } -> PageResponse
+  list: (params) => api.get(`/api/asset-histories${qs(params)}`),
 };

@@ -16,12 +16,10 @@ const DOT = { APPROVED: '✓', REJECTED: '✕', PENDING: '•', CANCELLED: '–'
 export default function RequestDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, hasRole } = useAuth();
-  const canApprove = hasRole('MANAGER', 'DIRECTOR');
+  const { user } = useAuth();
 
   const [request, setRequest] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [myTaskIds, setMyTaskIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -29,22 +27,17 @@ export default function RequestDetail() {
 
   const load = useCallback(() => {
     setLoading(true);
-    Promise.all([
-      approvalRequestApi.get(id),
-      approvalRequestApi.tasksOf(id).catch(() => []),
-      // Danh sach task PENDING ma backend cho phep chinh nguoi nay duyet.
-      // Dung de biet nut Duyet/Tu choi co nen hien khong.
-      canApprove ? approvalTaskApi.list({ status: 'PENDING' }).catch(() => []) : Promise.resolve([]),
-    ])
-      .then(([req, taskList, myTasks]) => {
+    // Moi task da kem co canDecide do backend tinh (dung vai tro, dung pham vi,
+    // khong phai nguoi yeu cau, dung buoc hien tai) nen khong can tu suy doan o day.
+    Promise.all([approvalRequestApi.get(id), approvalRequestApi.tasksOf(id).catch(() => [])])
+      .then(([req, taskList]) => {
         setRequest(req);
         setTasks(taskList ?? []);
-        setMyTaskIds(new Set((myTasks ?? []).map((t) => t.id)));
         setError('');
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [id, canApprove]);
+  }, [id]);
 
   useEffect(load, [load]);
 
@@ -120,7 +113,7 @@ export default function RequestDetail() {
         ) : (
           <ul className="timeline">
             {tasks.map((t) => {
-              const canDecide = t.status === 'PENDING' && myTaskIds.has(t.id);
+              const canDecide = t.status === 'PENDING' && t.canDecide === true;
               return (
                 <li key={t.id}>
                   <span className={`dot ${t.status.toLowerCase()}`}>{DOT[t.status] ?? '•'}</span>
