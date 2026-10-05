@@ -1,9 +1,5 @@
-import { api } from './client';
+import { api, getToken } from './client';
 
-/**
- * Ghep query string tu object, bo qua gia tri rong/null/undefined.
- * Dung chung cho moi API danh sach co phan trang + loc.
- */
 export function qs(params = {}) {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -13,21 +9,16 @@ export function qs(params = {}) {
   return text ? `?${text}` : '';
 }
 
-/**
- * Mot ham cho moi endpoint cua backend, dat ten theo controller tuong ung.
- * Giu tap trung o 1 cho de khi backend doi contract chi phai sua 1 file.
- */
 
 export const authApi = {
-  // AuthController.login tra ve JWT dang chuoi tho -> dung postRaw.
   login: (username, password) =>
     api.postRaw('/api/auth/login', { username, password }, false),
-  register: (payload) => api.post('/api/auth/register', payload),
 };
 
 export const userApi = {
   me: () => api.get('/api/users/me'),
-  list: () => api.get('/api/users'),
+  list: (params) => api.get(`/api/users${qs(params)}`),
+  listAll: () => api.get('/api/users?size=100'),
   get: (id) => api.get(`/api/users/${id}`),
   create: (payload) => api.post('/api/users', payload),
   update: (id, payload) => api.put(`/api/users/${id}`, payload),
@@ -36,7 +27,7 @@ export const userApi = {
 };
 
 export const assetApi = {
-  list: () => api.get('/api/assets'),
+  list: (params) => api.get(`/api/assets${qs(params)}`),
   get: (id) => api.get(`/api/assets/${id}`),
   create: (payload) => api.post('/api/assets', payload),
   update: (id, payload) => api.put(`/api/assets/${id}`, payload),
@@ -86,18 +77,23 @@ export const approvalTaskApi = {
   // "Cho toi duyet": chi gom task nguoi dung hien tai dang duoc phep xu ly.
   // params: { page, size } -> PageResponse
   mine: (params) => api.get(`/api/approval-tasks/mine${qs(params)}`),
-  // Toan bo task he thong, chi ADMIN goi duoc. params: { roleId, status, page, size }
   list: (params) => api.get(`/api/approval-tasks${qs(params)}`),
   approve: (taskId) => api.post(`/api/approval-tasks/${taskId}/approve`),
   reject: (taskId) => api.post(`/api/approval-tasks/${taskId}/reject`),
 };
 
 export const notificationApi = {
-  // params: { unreadOnly, page, size } -> PageResponse
   list: (params) => api.get(`/api/notifications${qs(params)}`),
   unreadCount: () => api.get('/api/notifications/unread-count'),
   markRead: (id) => api.patch(`/api/notifications/${id}/read`),
   markAllRead: () => api.patch('/api/notifications/read-all'),
+  // URL cho EventSource. EventSource khong the tu set header Authorization nen
+  // phai truyen JWT qua query param rieng (backend chi chap nhan fallback nay
+  // cho dung endpoint /stream, xem JwtAuthenticationFilter).
+  streamUrl: () => {
+    const base = import.meta.env.VITE_API_BASE_URL ?? '';
+    return `${base}/api/notifications/stream?access_token=${encodeURIComponent(getToken() ?? '')}`;
+  },
 };
 
 export const departmentApi = {

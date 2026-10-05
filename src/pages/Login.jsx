@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Alert, Field } from '../components/ui';
 
@@ -85,7 +85,7 @@ export default function Login() {
           </form>
 
           <p className="swap">
-            Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
+            Chưa có tài khoản? Liên hệ Trưởng phòng/ADMIN để được tạo tài khoản.
           </p>
 
           <div className="demo-creds">

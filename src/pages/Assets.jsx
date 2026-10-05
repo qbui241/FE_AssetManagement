@@ -62,9 +62,9 @@ export default function Assets() {
       departmentApi.list().catch(() => []),
     ])
       .then(([a, c, d]) => {
-        setAssets(a ?? []);
-        setCategories(c ?? []);
-        setDepartments(d ?? []);
+        setAssets(Array.isArray(a) ? a : a?.content ?? []);
+        setCategories(Array.isArray(c) ? c : c?.content ?? []);
+        setDepartments(Array.isArray(d) ? d : d?.content ?? []);
         setError('');
       })
       .catch((err) => setError(err.message))
@@ -115,7 +115,7 @@ export default function Assets() {
         title={`Tài sản (${filtered.length})`}
         actions={
           canWrite && (
-            <button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}>
+            <button className="btn btn-primary btn-lg" onClick={() => setCreating(true)}>
               Thêm tài sản
             </button>
           )
@@ -196,11 +196,11 @@ export default function Assets() {
                   const requestable = canRequestAsset(a);
                   return (
                     <tr key={a.id}>
-                      <td className="mono">
-                        <Link to={`/assets/${a.id}`}>{a.assetCode}</Link>
-                      </td>
+                      <td className="mono">{a.assetCode}</td>
                       <td>
-                        <div className="cell-title">{a.name}</div>
+                        <div className="cell-title">
+                          <Link to={`/assets/${a.id}`}>{a.name}</Link>
+                        </div>
                         {a.serialNumber && <div className="cell-sub mono">{a.serialNumber}</div>}
                       </td>
                       <td>{a.categoryName}</td>

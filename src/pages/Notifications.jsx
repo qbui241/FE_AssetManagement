@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationApi } from '../api/endpoints';
+import { useAuth } from '../context/AuthContext';
 import { Alert, Empty, Loading, Pagination, Panel, formatDateTime } from '../components/ui';
 
 const PAGE_SIZE = 20;
@@ -11,8 +12,10 @@ const isReadOf = (n) => Boolean(n.isRead ?? n.read);
 
 export default function Notifications() {
   const navigate = useNavigate();
+  // unreadCount lay chung tu AuthContext (cung noi quan ly ket noi SSE), de
+  // trang nay va badge o sidebar luon dong bo, khong tu fetch rieng mot ban.
+  const { unreadCount, refreshUnreadCount } = useAuth();
   const [result, setResult] = useState(null);
-  const [unread, setUnread] = useState(0);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -20,17 +23,14 @@ export default function Notifications() {
 
   const load = useCallback(() => {
     setLoading(true);
-    return Promise.all([
-      notificationApi.list({ unreadOnly, page, size: PAGE_SIZE }),
-      notificationApi.unreadCount().catch(() => null),
-    ])
-      .then(([res, count]) => {
+    return notificationApi
+      .list({ unreadOnly, page, size: PAGE_SIZE })
+      .then((res) => {
         if (res.content.length === 0 && res.page > 0) {
           setPage(res.page - 1);
           return;
         }
         setResult(res);
-        setUnread(count?.unreadCount ?? 0);
         setError('');
       })
       .catch((err) => setError(err.message))
@@ -41,10 +41,18 @@ export default function Notifications() {
     load();
   }, [load]);
 
+  // Co thong bao moi tu SSE (AuthContext) trong luc dang dung o trang nay ->
+  // lam moi danh sach ngay, khong can nguoi dung tu reload.
+  useEffect(() => {
+    window.addEventListener('am:notification', load);
+    return () => window.removeEventListener('am:notification', load);
+  }, [load]);
+
   const open = async (n) => {
     if (!isReadOf(n)) {
       try {
         await notificationApi.markRead(n.id);
+        refreshUnreadCount();
       } catch {
         /* van dieu huong du danh dau that bai */
       }
@@ -61,7 +69,7 @@ export default function Notifications() {
       <Alert kind="error">{error}</Alert>
 
       <Panel
-        title={`Thông báo${unread ? ` (${unread} chưa đọc)` : ''}`}
+        title={`Thông báo${unreadCount ? ` (${unreadCount} chưa đọc)` : ''}`}
         actions={
           <>
             <button
@@ -75,11 +83,11 @@ export default function Notifications() {
             </button>
             <button
               className="btn btn-sm"
-              disabled={unread === 0}
+              disabled={unreadCount === 0}
               onClick={() =>
                 notificationApi
                   .markAllRead()
-                  .then(load)
+                  .then(() => Promise.all([load(), refreshUnreadCount()]))
                   .catch((err) => setError(err.message))
               }
             >

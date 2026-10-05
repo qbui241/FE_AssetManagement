@@ -54,11 +54,13 @@ export default function AssetDetail() {
 
   useEffect(() => {
     if (canManage) {
-      categoryApi.list().then(setCategories).catch(() => {});
-      departmentApi.list().then(setDepartments).catch(() => {});
+      categoryApi.list().then(setCategories).catch(() => { });
+      departmentApi.list().then(setDepartments).catch(() => { });
     }
     if (isAdmin) {
-      userApi.list().then(setUsers).catch(() => setUsers([]));
+      // Chi dung de chon nguoi trong dropdown, khong hien bang -> lay het trong
+      // gioi han cua backend thay vi phan trang.
+      userApi.listAll().then((res) => setUsers(res.content)).catch(() => setUsers([]));
     }
   }, [canManage, isAdmin]);
 

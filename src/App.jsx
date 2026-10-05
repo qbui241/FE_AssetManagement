@@ -2,9 +2,9 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import { Loading } from './components/ui';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Assets from './pages/Assets';
 import AssetDetail from './pages/AssetDetail';
@@ -38,97 +38,98 @@ function RequireRole({ roles, children }) {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-
-          <Route
-            element={
-              <Protected>
-                <Layout />
-              </Protected>
-            }
-          >
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/assets" element={<Assets />} />
-            <Route path="/assets/:id" element={<AssetDetail />} />
-
-            <Route path="/requests" element={<Requests key="mine" scope="mine" />} />
-            <Route
-              path="/requests/all"
-              element={
-                <RequireRole roles={['MANAGER', 'DIRECTOR']}>
-                  <Requests key="all" scope="all" />
-                </RequireRole>
-              }
-            />
-            <Route path="/requests/:id" element={<RequestDetail />} />
-            <Route
-              path="/tasks"
-              element={
-                <RequireRole roles={['MANAGER', 'DIRECTOR']}>
-                  <Tasks />
-                </RequireRole>
-              }
-            />
-
-            <Route path="/notifications" element={<Notifications />} />
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
 
             <Route
-              path="/admin/users"
               element={
-                <RequireRole roles={['MANAGER', 'DIRECTOR']}>
-                  <Users />
-                </RequireRole>
+                <Protected>
+                  <Layout />
+                </Protected>
               }
-            />
-            <Route
-              path="/admin/organization"
-              element={
-                <RequireRole roles={['MANAGER', 'DIRECTOR', 'ADMIN']}>
-                  <Organization />
-                </RequireRole>
-              }
-            />
-            <Route
-              path="/admin/categories"
-              element={
-                <RequireRole roles={['MANAGER', 'DIRECTOR', 'ADMIN']}>
-                  <Categories />
-                </RequireRole>
-              }
-            />
-            <Route
-              path="/admin/workflows"
-              element={
-                <RequireRole roles={['MANAGER', 'DIRECTOR', 'ADMIN']}>
-                  <Workflows />
-                </RequireRole>
-              }
-            />
-            <Route
-              path="/audit-logs"
-              element={
-                <RequireRole roles={['MANAGER', 'DIRECTOR', 'ADMIN']}>
-                  <AuditLogs />
-                </RequireRole>
-              }
-            />
-            <Route
-              path="/asset-histories"
-              element={
-                <RequireRole roles={['MANAGER', 'DIRECTOR']}>
-                  <AssetHistories />
-                </RequireRole>
-              }
-            />
-          </Route>
+            >
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/assets" element={<Assets />} />
+              <Route path="/assets/:id" element={<AssetDetail />} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+              <Route path="/requests" element={<Requests key="mine" scope="mine" />} />
+              <Route
+                path="/requests/all"
+                element={
+                  <RequireRole roles={['MANAGER', 'DIRECTOR', 'ADMIN']}>
+                    <Requests key="all" scope="all" />
+                  </RequireRole>
+                }
+              />
+              <Route path="/requests/:id" element={<RequestDetail />} />
+              <Route
+                path="/tasks"
+                element={
+                  <RequireRole roles={['MANAGER', 'DIRECTOR', 'ADMIN']}>
+                    <Tasks />
+                  </RequireRole>
+                }
+              />
+
+              <Route path="/notifications" element={<Notifications />} />
+
+              <Route
+                path="/admin/users"
+                element={
+                  <RequireRole roles={['MANAGER', 'DIRECTOR', 'ADMIN']}>
+                    <Users />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/organization"
+                element={
+                  <RequireRole roles={['MANAGER', 'DIRECTOR', 'ADMIN']}>
+                    <Organization />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/categories"
+                element={
+                  <RequireRole roles={['MANAGER', 'DIRECTOR', 'ADMIN']}>
+                    <Categories />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/workflows"
+                element={
+                  <RequireRole roles={['MANAGER', 'DIRECTOR', 'ADMIN']}>
+                    <Workflows />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/audit-logs"
+                element={
+                  <RequireRole roles={['MANAGER', 'DIRECTOR', 'ADMIN']}>
+                    <AuditLogs />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/asset-histories"
+                element={
+                  <RequireRole roles={['MANAGER', 'DIRECTOR', 'ADMIN']}>
+                    <AssetHistories />
+                  </RequireRole>
+                }
+              />
+            </Route>
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

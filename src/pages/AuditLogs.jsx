@@ -135,12 +135,12 @@ export default function AuditLogs() {
               <table>
                 <thead>
                   <tr>
-                    <th>Thời điểm</th>
-                    <th>Hành động</th>
-                    <th>Đối tượng</th>
-                    <th>Thay đổi</th>
+                    <th style={{ width: 160 }}>Thời điểm</th>
+                    <th style={{ width: 130 }}>Hành động</th>
+                    <th style={{ width: 150 }}>Đối tượng</th>
+                    <th style={{ width: 220 }}>Thay đổi</th>
                     <th>Mô tả</th>
-                    <th>Người thực hiện</th>
+                    <th style={{ width: 180 }}>Người thực hiện</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -155,15 +155,9 @@ export default function AuditLogs() {
                           </span>
                         </td>
                         <td>
-                          {href ? (
-                            <Link to={href}>
-                              {l.entityType} #{l.entityId}
-                            </Link>
-                          ) : (
-                            <span className="cell-sub">
-                              {l.entityType} #{l.entityId}
-                            </span>
-                          )}
+                          <span>
+                            {l.entityType} #{l.entityId}
+                          </span>
                         </td>
                         <td className="cell-sub">
                           {l.oldValue || l.newValue ? (

@@ -78,7 +78,7 @@ export default function Organization() {
           title={`Chi nhánh (${branches.length})`}
           actions={
             isAdmin && (
-              <button className="btn btn-sm btn-primary" onClick={() => setBranchForm({})}>
+              <button className="btn btn-lg btn-primary" onClick={() => setBranchForm({})}>
                 Thêm
               </button>
             )
@@ -135,7 +135,7 @@ export default function Organization() {
           actions={
             isAdmin && (
               <button
-                className="btn btn-sm btn-primary"
+                className="btn btn-lg btn-primary"
                 disabled={branches.length === 0}
                 onClick={() => setDeptForm({})}
               >

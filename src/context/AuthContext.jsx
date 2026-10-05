@@ -1,16 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { clearToken, getToken, setToken } from '../api/client';
-import { authApi, userApi } from '../api/endpoints';
+import { authApi, notificationApi, userApi } from '../api/endpoints';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(Boolean(getToken()));
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const logout = useCallback(() => {
     clearToken();
     setUser(null);
+    setUnreadCount(0);
   }, []);
 
   // Khi bat ky request nao nhan 401, client.js phat su kien nay.
@@ -44,6 +46,36 @@ export function AuthProvider({ children }) {
     return me;
   }, []);
 
+  const refreshUnreadCount = useCallback(() => {
+    return notificationApi
+      .unreadCount()
+      .then((res) => setUnreadCount(res?.unreadCount ?? 0))
+      .catch(() => { });
+  }, []);
+
+  // 1) Mo 1 ket noi SSE duy nhat cho ca phien, dong khi dang xuat/unmount.
+  // 2) Luoi an toan: dong bo lai so chinh xac dinh ky, phong khi lo su kien SSE
+  //    (mat mang tam thoi, server restart giua luc dang mo ket noi).
+  useEffect(() => {
+    if (!user) return;
+
+    refreshUnreadCount();
+
+    const source = new EventSource(notificationApi.streamUrl());
+    source.addEventListener('notification', () => {
+      setUnreadCount((prev) => prev + 1);
+      // Cho cac trang khac (vd. Notifications.jsx) biet de tu lam moi danh sach.
+      window.dispatchEvent(new CustomEvent('am:notification'));
+    });
+
+    const timer = setInterval(refreshUnreadCount, 60000);
+
+    return () => {
+      source.close();
+      clearInterval(timer);
+    };
+  }, [user?.id, refreshUnreadCount]);
+
   const roles = user?.roles ?? [];
   const value = {
     user,
@@ -53,8 +85,9 @@ export function AuthProvider({ children }) {
     logout,
     refreshUser: () => userApi.me().then(setUser),
     hasRole: (...wanted) => wanted.some((role) => roles.includes(role)),
-    // Nhan vien moi dang ky chua duoc ADMIN gan role -> chi xem duoc rat it man hinh.
     hasNoRole: Boolean(user) && roles.length === 0,
+    unreadCount,
+    refreshUnreadCount,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

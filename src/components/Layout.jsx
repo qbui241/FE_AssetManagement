@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { notificationApi } from '../api/endpoints';
 
 const PAGE_META = {
   '/': { title: 'Tổng quan', sub: 'Tình hình tài sản và việc cần xử lý của bạn' },
@@ -26,31 +24,11 @@ function metaFor(pathname) {
 }
 
 export default function Layout() {
-  const { user, roles, logout, hasRole, hasNoRole } = useAuth();
+  const { user, roles, logout, hasRole, hasNoRole, unreadCount } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [unread, setUnread] = useState(0);
 
-  // Poll so thong bao chua doc. Backend chua co WebSocket nen day la
-  // cach duy nhat de badge tu cap nhat.
-  useEffect(() => {
-    let alive = true;
-    const load = () =>
-      notificationApi
-        .unreadCount()
-        .then((res) => {
-          if (alive) setUnread(res?.unreadCount ?? 0);
-        })
-        .catch(() => {});
-    load();
-    const timer = setInterval(load, 30000);
-    return () => {
-      alive = false;
-      clearInterval(timer);
-    };
-  }, [location.pathname]);
-
-  const canApprove = hasRole('MANAGER', 'DIRECTOR');
+  const canApprove = hasRole('MANAGER', 'DIRECTOR', 'ADMIN');
   const canSeeAudit = hasRole('MANAGER', 'DIRECTOR', 'ADMIN');
   const canConfigure = hasRole('MANAGER', 'DIRECTOR', 'ADMIN');
   const meta = metaFor(location.pathname);
@@ -72,9 +50,11 @@ export default function Layout() {
           </NavLink>
 
           <div className="sidebar-group">Phê duyệt</div>
-          <NavLink to="/requests" end className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-            Yêu cầu của tôi
-          </NavLink>
+          {!hasRole('ADMIN') && (
+            <NavLink to="/requests" end className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              Yêu cầu của tôi
+            </NavLink>
+          )}
           {canApprove && (
             <>
               <NavLink
@@ -92,7 +72,7 @@ export default function Layout() {
           {canConfigure && (
             <>
               <div className="sidebar-group">Quản trị</div>
-              {canApprove && (
+              {(canApprove || hasRole('ADMIN')) && (
                 <NavLink
                   to="/admin/users"
                   className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
@@ -147,7 +127,7 @@ export default function Layout() {
             className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
           >
             <span>Thông báo</span>
-            {unread > 0 && <span className="count">{unread}</span>}
+            {unreadCount > 0 && <span className="count">{unreadCount}</span>}
           </NavLink>
         </nav>
 
@@ -178,17 +158,11 @@ export default function Layout() {
           </div>
           <div className="bell">
             <NavLink to="/notifications">Thông báo</NavLink>
-            {unread > 0 && <span className="count">{unread}</span>}
+            {unreadCount > 0 && <span className="count">{unreadCount}</span>}
           </div>
         </header>
 
         <main className="content">
-          {hasNoRole && (
-            <div className="alert alert-info">
-              Tài khoản của bạn chưa được gán vai trò. Bạn có thể xem tài sản và gửi yêu cầu, nhưng
-              chưa duyệt được. Liên hệ quản trị viên để được gán vai trò.
-            </div>
-          )}
           <Outlet />
         </main>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { departmentApi, roleApi, userApi } from '../api/endpoints';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -7,62 +7,89 @@ import {
   Field,
   Loading,
   Modal,
+  Pagination,
   Panel,
   deptLabel,
+  branchIdOf,
+  useDebouncedValue,
 } from '../components/ui';
 import { IconPencil, IconShield, IconTrash } from '../components/icons';
 
+const ROLE_OPTIONS = ['MANAGER', 'DIRECTOR', 'ADMIN'];
+const PAGE_SIZE = 20;
+
 export default function Users() {
   const { hasRole, user: me } = useAuth();
-  const canWrite = hasRole('MANAGER', 'DIRECTOR');
+  const canWrite = hasRole('MANAGER', 'DIRECTOR', 'ADMIN');
   const canAssignRole = hasRole('DIRECTOR', 'ADMIN');
 
-  const [users, setUsers] = useState([]);
+  const [result, setResult] = useState(null);
   const [departments, setDepartments] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busyId, setBusyId] = useState(null);
+
   const [q, setQ] = useState('');
+  const [departmentId, setDepartmentId] = useState('');
+  const [roleName, setRoleName] = useState('');
+  const [page, setPage] = useState(0);
 
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
   const [assigning, setAssigning] = useState(null);
 
+  const keyword = useDebouncedValue(q.trim());
+
+  useEffect(() => {
+    departmentApi.list().then(setDepartments).catch(() => { });
+    roleApi.list().then(setRoles).catch(() => { });
+  }, []);
+
   const load = () => {
     setLoading(true);
-    Promise.all([
-      userApi.list(),
-      departmentApi.list().catch(() => []),
-      roleApi.list().catch(() => []),
-    ])
-      .then(([u, d, r]) => {
-        setUsers(u ?? []);
-        setDepartments(d ?? []);
-        setRoles(r ?? []);
+    return userApi
+      .list({ q: keyword, departmentId, roleName, page, size: PAGE_SIZE })
+      .then((res) => {
+        setResult(res);
         setError('');
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, []);
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    userApi
+      .list({ q: keyword, departmentId, roleName, page, size: PAGE_SIZE })
+      .then((res) => {
+        if (!alive) return;
+        setResult(res);
+        setError('');
+      })
+      .catch((err) => alive && setError(err.message))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyword, departmentId, roleName, page]);
 
-  const deptById = useMemo(
-    () => Object.fromEntries(departments.map((d) => [d.id, d])),
-    [departments]
-  );
+  const updateFilter = (setter) => (value) => {
+    setter(value);
+    setPage(0);
+  };
 
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return users;
-    return users.filter((u) =>
-      [u.name, u.username, u.email].filter(Boolean).some((v) =>
-        String(v).toLowerCase().includes(needle)
-      )
-    );
-  }, [users, q]);
+  const deptById = Object.fromEntries(departments.map((d) => [d.id, d]));
+  const myBranchId = branchIdOf(deptById[me?.departmentId]);
+  const visibleDepartments = hasRole('ADMIN')
+    ? departments
+    : departments.filter((d) => branchIdOf(d) === myBranchId);
+  const users = result?.content ?? [];
+  const total = result?.totalElements ?? 0;
+  const filtering = Boolean(keyword || departmentId || roleName);
 
   const remove = async (u) => {
     if (!confirm(`Xoá người dùng ${u.username}?`)) return;
@@ -90,120 +117,160 @@ export default function Users() {
       </Alert>
 
       <Panel
-        title={`Người dùng (${filtered.length})`}
+        title={`Người dùng (${total})`}
         actions={
-          <>
-            <input
-              placeholder="Tìm tên, tài khoản, email…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              style={{
-                padding: '6px 10px',
-                border: '1px solid var(--line-strong)',
-                borderRadius: 'var(--radius)',
-                minWidth: 200,
-              }}
-            />
-            {canWrite && (
-              <button className="btn btn-sm btn-primary" onClick={() => setCreating(true)}>
-                Thêm người dùng
-              </button>
-            )}
-          </>
+          canWrite && (
+            <button className="btn btn-lg btn-primary" onClick={() => setCreating(true)}>
+              Thêm người dùng
+            </button>
+          )
         }
         bodyless
       >
-        {loading ? (
-          <Loading />
-        ) : filtered.length === 0 ? (
-          <Empty title={users.length ? 'Không có kết quả khớp' : 'Chưa có người dùng nào'} />
-        ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Tài khoản</th>
-                  <th>Họ tên</th>
-                  <th>Email</th>
-                  <th>Phòng ban</th>
-                  <th>Vai trò</th>
-                  <th className="actions-col">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((u) => (
-                  <tr key={u.id}>
-                    <td className="mono">{u.username}</td>
-                    <td className="cell-title">
-                      {u.name}
-                      {u.id === me?.id && (
-                        <span style={{ color: 'var(--ink-faint)' }}> (bạn)</span>
-                      )}
-                    </td>
-                    <td>{u.email}</td>
-                    <td>{deptLabel(deptById[u.departmentId]) ?? u.departmentId}</td>
-                    <td>
-                      <div className="chip-list">
-                        {u.roles?.length ? (
-                          u.roles.map((r) => (
-                            <span key={r} className="badge badge-role">
-                              {r}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="badge badge-pending">Chưa gán</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="actions-col">
-                      <div className="row-actions">
-                        {canAssignRole && (
-                          <button
-                            className="icon-btn primary"
-                            title="Gán vai trò"
-                            aria-label={`Gán vai trò cho ${u.username}`}
-                            disabled={busyId === u.id}
-                            onClick={() => setAssigning(u)}
-                          >
-                            <IconShield />
-                          </button>
-                        )}
-                        {canWrite && (
-                          <button
-                            className="icon-btn"
-                            title="Sửa thông tin"
-                            aria-label={`Sửa ${u.username}`}
-                            disabled={busyId === u.id}
-                            onClick={() => setEditing(u)}
-                          >
-                            <IconPencil />
-                          </button>
-                        )}
-                        {canWrite && (
-                          <button
-                            className="icon-btn danger"
-                            title="Xoá người dùng"
-                            aria-label={`Xoá ${u.username}`}
-                            disabled={busyId === u.id || u.id === me?.id}
-                            onClick={() => remove(u)}
-                          >
-                            <IconTrash />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="panel-body" style={{ borderBottom: '1px solid var(--line)' }}>
+          <div className="filters">
+            <input
+              placeholder="Tìm tên, tài khoản, email…"
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(0);
+              }}
+              style={{ minWidth: 220 }}
+            />
+            <select value={departmentId} onChange={(e) => updateFilter(setDepartmentId)(e.target.value)}>
+              <option value="">Mọi phòng ban</option>
+              {visibleDepartments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {deptLabel(d)}
+                </option>
+              ))}
+            </select>
+            <select value={roleName} onChange={(e) => updateFilter(setRoleName)(e.target.value)}>
+              <option value="">Mọi vai trò</option>
+              {ROLE_OPTIONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+            {filtering && (
+              <button
+                className="btn btn-sm"
+                onClick={() => {
+                  setQ('');
+                  setDepartmentId('');
+                  setRoleName('');
+                  setPage(0);
+                }}
+              >
+                Xoá bộ lọc
+              </button>
+            )}
           </div>
+        </div>
+
+        {loading && !result ? (
+          <Loading />
+        ) : users.length === 0 ? (
+          <Empty title={filtering ? 'Không có kết quả khớp' : 'Chưa có người dùng nào'} />
+        ) : (
+          <>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tài khoản</th>
+                    <th>Họ tên</th>
+                    <th>Email</th>
+                    <th>Phòng ban</th>
+                    <th>Vai trò</th>
+                    <th className="actions-col">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((u) => (
+                    <tr key={u.id}>
+                      <td className="mono">{u.username}</td>
+                      <td className="cell-title">
+                        {u.name}
+                        {u.id === me?.id && (
+                          <span style={{ color: 'var(--ink-faint)' }}> (bạn)</span>
+                        )}
+                      </td>
+                      <td>{u.email}</td>
+                      <td>{deptLabel(deptById[u.departmentId]) ?? u.departmentId}</td>
+                      <td>
+                        <div className="chip-list">
+                          {u.roles?.length ? (
+                            u.roles.map((r) => (
+                              <span key={r} className="badge badge-role">
+                                {r}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="badge badge-pending">Chưa gán</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="actions-col">
+                        <div className="row-actions">
+                          {canAssignRole && (
+                            <button
+                              className="icon-btn primary"
+                              title="Gán vai trò"
+                              aria-label={`Gán vai trò cho ${u.username}`}
+                              disabled={busyId === u.id}
+                              onClick={() => setAssigning(u)}
+                            >
+                              <IconShield />
+                            </button>
+                          )}
+                          {canWrite && (
+                            <button
+                              className="icon-btn"
+                              title="Sửa thông tin"
+                              aria-label={`Sửa ${u.username}`}
+                              disabled={busyId === u.id}
+                              onClick={() => setEditing(u)}
+                            >
+                              <IconPencil />
+                            </button>
+                          )}
+                          {canWrite && (
+                            <button
+                              className="icon-btn danger"
+                              title="Xoá người dùng"
+                              aria-label={`Xoá ${u.username}`}
+                              disabled={busyId === u.id || u.id === me?.id}
+                              onClick={() => remove(u)}
+                            >
+                              <IconTrash />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              page={page}
+              totalPages={result?.totalPages ?? 0}
+              totalElements={total}
+              onChange={setPage}
+              unit="người dùng"
+            />
+          </>
         )}
       </Panel>
 
       {(creating || editing) && (
         <UserFormModal
           user={editing}
-          departments={departments}
+          departments={visibleDepartments}
           onClose={() => {
             setCreating(false);
             setEditing(null);
@@ -382,8 +449,7 @@ function AssignRoleModal({ user, roles, onClose, onSaved }) {
       <Alert kind="error">{error}</Alert>
 
       <p style={{ marginTop: 0, color: 'var(--ink-soft)' }}>
-        Vai trò hiện tại:{' '}
-        {user.roles?.length ? user.roles.join(', ') : 'chưa có'}
+        Vai trò hiện tại: {user.roles?.length ? user.roles.join(', ') : 'chưa có'}
       </p>
 
       <div className="alert alert-info">

@@ -88,11 +88,11 @@ export default function Tasks() {
                 <tbody>
                   {tasks.map((t) => (
                     <tr key={t.id}>
+                      <td>#{t.approvalRequestId}</td>
                       <td>
-                        <Link to={`/requests/${t.approvalRequestId}`}>#{t.approvalRequestId}</Link>
-                      </td>
-                      <td>
-                        <div className="cell-title">{t.assetName}</div>
+                        <div className="cell-title">
+                          <Link to={`/requests/${t.approvalRequestId}`}>{t.assetName}</Link>
+                        </div>
                         <div className="cell-sub mono">{t.assetCode}</div>
                       </td>
                       <td>{t.requesterName}</td>

@@ -116,7 +116,7 @@ export default function Workflows() {
         description="Mỗi loại hành động chỉ nên có một quy trình đang bật."
         actions={
           isAdmin && (
-            <button className="btn btn-sm btn-primary" onClick={() => setWfForm({})}>
+            <button className="btn btn-lg btn-primary" onClick={() => setWfForm({})}>
               Thêm quy trình
             </button>
           )
@@ -214,7 +214,7 @@ export default function Workflows() {
         actions={
           isAdmin &&
           activeWorkflow && (
-            <button className="btn btn-sm btn-primary" onClick={() => setStepForm({})}>
+            <button className="btn btn-lg btn-primary" onClick={() => setStepForm({})}>
               Thêm bước
             </button>
           )

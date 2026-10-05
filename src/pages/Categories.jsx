@@ -96,7 +96,7 @@ export default function Categories() {
           title={`Danh mục tài sản (${categories.length})`}
           actions={
             isAdmin && (
-              <button className="btn btn-sm btn-primary" onClick={() => setCatForm({})}>
+              <button className="btn btn-lg btn-primary" onClick={() => setCatForm({})}>
                 Thêm
               </button>
             )
@@ -177,7 +177,7 @@ export default function Categories() {
               </select>
               {isAdmin && (
                 <button
-                  className="btn btn-sm btn-primary"
+                  className="btn btn-lg btn-primary"
                   disabled={categories.length === 0}
                   onClick={() => setAttrForm({})}
                 >

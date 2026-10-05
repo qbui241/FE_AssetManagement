@@ -30,7 +30,9 @@ export default function Dashboard() {
     let alive = true;
     Promise.all([
       dashboardApi.stats().catch(() => null),
-      assetApi.list().catch(() => []),
+      // Chi can 6 dong dau de hien "san sang cap phat", loc thang tren server
+      // thay vi tai het roi filter, va khong con phai .slice(0, 6) o duoi nua.
+      assetApi.list({ status: 'AVAILABLE', page: 0, size: 6 }).catch(() => null),
       // 6 yeu cau moi nhat de hien thi
       approvalRequestApi.listMine({ page: 0, size: 6 }).catch(() => null),
       // Chi can tong so yeu cau dang cho -> size=1, doc totalElements
@@ -40,7 +42,7 @@ export default function Dashboard() {
       .then(([s, assets, recent, pending, myTasks]) => {
         if (!alive) return;
         setStats(s);
-        setAvailableAssets((assets ?? []).filter((a) => a.status === 'AVAILABLE'));
+        setAvailableAssets(assets?.content ?? []);
         setMyRequests(recent?.content ?? []);
         setPendingMine(pending?.totalElements ?? 0);
         setTasks(myTasks?.content ?? []);
@@ -198,7 +200,7 @@ export default function Dashboard() {
       <Panel
         title="Yêu cầu gần đây của tôi"
         actions={
-          <Link className="btn btn-sm btn-primary" to="/assets">
+          <Link className="btn btn-lg btn-primary" to="/assets">
             Tạo yêu cầu mới
           </Link>
         }
@@ -224,11 +226,11 @@ export default function Dashboard() {
               <tbody>
                 {myRequests.map((r) => (
                   <tr key={r.id}>
+                    <td>#{r.id}</td>
                     <td>
-                      <Link to={`/requests/${r.id}`}>#{r.id}</Link>
-                    </td>
-                    <td>
-                      <div className="cell-title">{r.assetName}</div>
+                      <div className="cell-title">
+                        <Link to={`/requests/${r.id}`}>{r.assetName}</Link>
+                      </div>
                       <div className="cell-sub mono">{r.assetCode}</div>
                     </td>
                     <td>Bước {r.currentStepOrder}</td>
@@ -261,12 +263,12 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {availableAssets.slice(0, 6).map((a) => (
+                {availableAssets.map((a) => (
                   <tr key={a.id}>
-                    <td className="mono">
-                      <Link to={`/assets/${a.id}`}>{a.assetCode}</Link>
+                    <td className="mono">{a.assetCode}</td>
+                    <td className="cell-title">
+                      <Link to={`/assets/${a.id}`}>{a.name}</Link>
                     </td>
-                    <td className="cell-title">{a.name}</td>
                     <td>{a.categoryName}</td>
                     <td>{a.departmentName}</td>
                     <td className="num">

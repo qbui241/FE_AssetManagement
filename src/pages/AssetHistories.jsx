@@ -118,7 +118,7 @@ export default function AssetHistories() {
                         <div className="cell-title">{h.assetName}</div>
                         <div className="cell-sub mono">{h.assetCode}</div>
                       </td>
-                      <td className="num">{h.quantity ?? '—'}</td>
+                      <td className="num">{h.quantity ?? '1'}</td>
                       <td>
                         <div className="cell-title">{h.userName}</div>
                         <div className="cell-sub">{h.userEmail}</div>

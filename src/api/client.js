@@ -20,13 +20,6 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Backend tra loi loi duoi nhieu dang khac nhau:
- *  - Spring validation:   { errors: [...] } hoac { fieldName: "message" }
- *  - RuntimeException:    { message: "...", error: "...", status: 500 }
- *  - Chuoi thuan
- * Ham nay rut ra 1 cau ngan gon de hien thi.
- */
 async function extractError(response) {
   const raw = await response.text();
 
@@ -39,10 +32,15 @@ async function extractError(response) {
   try {
     const data = JSON.parse(raw);
     if (typeof data === 'string') return data;
+
+    if (data.errors && typeof data.errors === 'object') {
+      const fieldErrors = Object.entries(data.errors).map(([field, msg]) => `${field}: ${msg}`);
+      if (fieldErrors.length) return fieldErrors.join(' · ');
+    }
     if (data.message) return data.message;
     if (data.error) return data.error;
 
-    // Loi validation dang { field: "message" }
+    // Du phong cho dang {field: "message"} khong boc trong "errors"
     const entries = Object.entries(data).filter(
       ([key, value]) => typeof value === 'string' && !['timestamp', 'path', 'status'].includes(key)
     );

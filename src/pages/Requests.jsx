@@ -103,11 +103,11 @@ export default function Requests({ scope = 'mine' }) {
                 <tbody>
                   {requests.map((r) => (
                     <tr key={r.id}>
+                      <td>#{r.id}</td>
                       <td>
-                        <Link to={`/requests/${r.id}`}>#{r.id}</Link>
-                      </td>
-                      <td>
-                        <div className="cell-title">{r.assetName}</div>
+                        <div className="cell-title">
+                          <Link to={`/requests/${r.id}`}>{r.assetName}</Link>
+                        </div>
                         <div className="cell-sub mono">{r.assetCode}</div>
                       </td>
                       {scope === 'all' && <td>{r.requesterName}</td>}
