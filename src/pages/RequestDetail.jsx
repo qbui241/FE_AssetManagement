@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { approvalRequestApi, approvalTaskApi } from '../api/endpoints';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../components/ConfirmDialog';
+import { useToast } from '../components/ToastProvider';
 import {
   Alert,
   Loading,
@@ -17,12 +19,13 @@ export default function RequestDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [request, setRequest] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
@@ -43,15 +46,13 @@ export default function RequestDetail() {
 
   const decide = async (taskId, approve) => {
     setBusy(true);
-    setError('');
-    setNotice('');
     try {
       if (approve) await approvalTaskApi.approve(taskId);
       else await approvalTaskApi.reject(taskId);
-      setNotice(approve ? 'Đã duyệt bước này.' : 'Đã từ chối yêu cầu.');
+      toast.success(approve ? 'Đã duyệt bước này.' : 'Đã từ chối yêu cầu.');
       load();
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setBusy(false);
     }
@@ -66,9 +67,6 @@ export default function RequestDetail() {
     <>
       <Alert kind="error" onDismiss={() => setError('')}>
         {error}
-      </Alert>
-      <Alert kind="success" onDismiss={() => setNotice('')}>
-        {notice}
       </Alert>
 
       <Panel
@@ -94,7 +92,7 @@ export default function RequestDetail() {
           {request.requestedQuantity != null && (
             <Item k="Số lượng đề xuất" v={request.requestedQuantity} />
           )}
-          <Item k="Bước hiện tại" v={`Bước ${request.currentStepOrder}`} />
+          <Item k="Bước hiện tại" v={`Bước ${currentDisplayStep(request, tasks)}`} />
           <Item k="Ngày gửi" v={formatDateTime(request.createdAt)} />
           <Item k="Hoàn tất lúc" v={formatDateTime(request.completedAt)} />
         </div>
@@ -119,7 +117,13 @@ export default function RequestDetail() {
                   <span className={`dot ${t.status.toLowerCase()}`}>{DOT[t.status] ?? '•'}</span>
                   <div className="body">
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <span className="who">Bước {t.stepOrder}</span>
+                      {/* displayOrder: BE da tinh san, lien tuc 1,2,3... - khong
+                          con "khoang trong" nhu stepOrder goc khi 1 buoc bi
+                          WorkflowEngineService tu dong bo qua (trung phong ban
+                          nguoi yeu cau/tai san). Fallback stepOrder chi de phong
+                          du lieu rat cu chua co cot nay (BE da tu fallback roi,
+                          day la lop phong thu 2). */}
+                      <span className="who">Bước {t.displayOrder ?? t.stepOrder}</span>
                       <span className="badge badge-role">{t.roleName}</span>
                       <RequestStatusBadge status={t.status} />
                     </div>
@@ -143,8 +147,14 @@ export default function RequestDetail() {
                         <button
                           className="btn btn-sm btn-danger"
                           disabled={busy}
-                          onClick={() => {
-                            if (confirm('Từ chối yêu cầu này?')) decide(t.id, false);
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: 'Từ chối yêu cầu',
+                              message: 'Từ chối yêu cầu này?',
+                              confirmText: 'Từ chối',
+                              danger: true,
+                            });
+                            if (ok) decide(t.id, false);
                           }}
                         >
                           Từ chối
@@ -169,4 +179,13 @@ function Item({ k, v }) {
       <div className="v">{v}</div>
     </div>
   );
+}
+
+// "Bước hien tai" o panel tren dung request.currentStepOrder (stepOrder goc,
+// BE dung de so sanh thu tu xu ly workflow - khong doi y nghia duoc). Tim
+// task tuong ung trong danh sach da fetch de lay dung displayOrder cua no,
+// thay vi hien thi stepOrder goc co the co "khoang trong".
+function currentDisplayStep(request, tasks) {
+  const match = tasks.find((t) => t.stepOrder === request.currentStepOrder);
+  return match ? (match.displayOrder ?? match.stepOrder) : request.currentStepOrder;
 }

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { branchApi, departmentApi } from '../api/endpoints';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../components/ConfirmDialog';
+import { useToast } from '../components/ToastProvider';
 import {
   Alert,
   Empty,
@@ -16,12 +18,13 @@ import { IconPencil, IconTrash } from '../components/icons';
 export default function Organization() {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('ADMIN');
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [branches, setBranches] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
 
   const [branchForm, setBranchForm] = useState(null); // {} = tao moi, {id...} = sua
   const [deptForm, setDeptForm] = useState(null);
@@ -41,24 +44,40 @@ export default function Organization() {
   useEffect(load, []);
 
   const removeBranch = async (b) => {
-    if (!confirm(`Xoá chi nhánh ${b.name}?`)) return;
+    if (
+      !(await confirm({
+        title: 'Xoá chi nhánh',
+        message: `Xoá chi nhánh ${b.name}?`,
+        confirmText: 'Xoá',
+        danger: true,
+      }))
+    )
+      return;
     try {
       await branchApi.remove(b.id);
-      setNotice(`Đã xoá chi nhánh ${b.name}.`);
+      toast.success(`Đã xoá chi nhánh ${b.name}.`);
       load();
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
   const removeDept = async (d) => {
-    if (!confirm(`Xoá phòng ban ${d.name}?`)) return;
+    if (
+      !(await confirm({
+        title: 'Xoá phòng ban',
+        message: `Xoá phòng ban ${d.name}?`,
+        confirmText: 'Xoá',
+        danger: true,
+      }))
+    )
+      return;
     try {
       await departmentApi.remove(d.id);
-      setNotice(`Đã xoá phòng ban ${d.name}.`);
+      toast.success(`Đã xoá phòng ban ${d.name}.`);
       load();
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -68,9 +87,6 @@ export default function Organization() {
     <>
       <Alert kind="error" onDismiss={() => setError('')}>
         {error}
-      </Alert>
-      <Alert kind="success" onDismiss={() => setNotice('')}>
-        {notice}
       </Alert>
 
       <div className="two-col">
@@ -197,7 +213,7 @@ export default function Organization() {
           onClose={() => setBranchForm(null)}
           onSaved={() => {
             setBranchForm(null);
-            setNotice('Đã lưu chi nhánh.');
+            toast.success('Đã lưu chi nhánh.');
             load();
           }}
         />
@@ -210,7 +226,7 @@ export default function Organization() {
           onClose={() => setDeptForm(null)}
           onSaved={() => {
             setDeptForm(null);
-            setNotice('Đã lưu phòng ban.');
+            toast.success('Đã lưu phòng ban.');
             load();
           }}
         />

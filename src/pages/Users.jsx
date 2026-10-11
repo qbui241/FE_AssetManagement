@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { departmentApi, roleApi, userApi } from '../api/endpoints';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../components/ConfirmDialog';
+import { useToast } from '../components/ToastProvider';
 import {
   Alert,
   Empty,
@@ -22,13 +24,14 @@ export default function Users() {
   const { hasRole, user: me } = useAuth();
   const canWrite = hasRole('MANAGER', 'DIRECTOR', 'ADMIN');
   const canAssignRole = hasRole('DIRECTOR', 'ADMIN');
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [result, setResult] = useState(null);
   const [departments, setDepartments] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [busyId, setBusyId] = useState(null);
 
   const [q, setQ] = useState('');
@@ -92,16 +95,23 @@ export default function Users() {
   const filtering = Boolean(keyword || departmentId || roleName);
 
   const remove = async (u) => {
-    if (!confirm(`Xoá người dùng ${u.username}?`)) return;
+    if (
+      !(await confirm({
+        title: 'Xoá người dùng',
+        message: `Xoá người dùng ${u.username}?`,
+        confirmText: 'Xoá',
+        danger: true,
+      }))
+    )
+      return;
     setBusyId(u.id);
     setError('');
-    setNotice('');
     try {
       await userApi.remove(u.id);
-      setNotice(`Đã xoá ${u.username}.`);
+      toast.success(`Đã xoá ${u.username}.`);
       load();
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setBusyId(null);
     }
@@ -111,9 +121,6 @@ export default function Users() {
     <>
       <Alert kind="error" onDismiss={() => setError('')}>
         {error}
-      </Alert>
-      <Alert kind="success" onDismiss={() => setNotice('')}>
-        {notice}
       </Alert>
 
       <Panel
@@ -278,7 +285,7 @@ export default function Users() {
           onSaved={() => {
             setCreating(false);
             setEditing(null);
-            setNotice('Đã lưu thông tin người dùng.');
+            toast.success('Đã lưu thông tin người dùng.');
             load();
           }}
         />
@@ -291,7 +298,7 @@ export default function Users() {
           onClose={() => setAssigning(null)}
           onSaved={() => {
             setAssigning(null);
-            setNotice('Đã gán vai trò.');
+            toast.success('Đã gán vai trò.');
             load();
           }}
         />

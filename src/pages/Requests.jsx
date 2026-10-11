@@ -113,7 +113,8 @@ export default function Requests({ scope = 'mine' }) {
                       {scope === 'all' && <td>{r.requesterName}</td>}
                       <td>{r.workflowName}</td>
                       <td className="num">{r.requestedQuantity ?? '—'}</td>
-                      <td>Bước {r.currentStepOrder}</td>
+                      {/* currentDisplayStepOrder: xem giai thich trong Dashboard.jsx */}
+                      <td>Bước {r.currentDisplayStepOrder}</td>
                       <td>
                         <RequestStatusBadge status={r.status} />
                       </td>

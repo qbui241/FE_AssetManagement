@@ -59,6 +59,7 @@ export default function Notifications() {
     }
     if (n.relatedEntityType === 'APPROVAL_REQUEST') navigate(`/requests/${n.relatedEntityId}`);
     else if (n.relatedEntityType === 'ASSET') navigate(`/assets/${n.relatedEntityId}`);
+    else if (n.relatedEntityType === 'APPROVAL_TASK') navigate(`/tasks`);
     else load();
   };
 

@@ -71,6 +71,45 @@ export function TrackingBadge({ type }) {
 export const assetStatusLabel = (s) => ASSET_STATUS_LABEL[s] ?? s;
 export const requestStatusLabel = (s) => REQUEST_STATUS_LABEL[s] ?? s;
 
+export function allowedRequestActionTypes(asset) {
+  if (!asset) return [];
+  if (asset.trackingType === 'BULK') {
+    return asset.status !== 'DISPOSED' && asset.availableQuantity > 0
+      ? ['ASSIGNMENT', 'DISPOSAL']
+      : [];
+  }
+  if (asset.status === 'AVAILABLE') return ['ASSIGNMENT'];
+  if (asset.status === 'RETURNED') return ['DISPOSAL'];
+  return [];
+}
+
+export const ACTION_TYPE_LABEL = {
+  ASSIGNMENT: 'Cấp phát / mượn',
+  DISPOSAL: 'Thanh lý',
+};
+
+export function canRequestDisposal(asset, user, hasRole) {
+  if (!asset || !user) return false;
+  if (hasRole('ADMIN')) return true;
+  if (hasRole('DIRECTOR')) return user.branchId != null && user.branchId === asset.branchId;
+  if (hasRole('MANAGER')) return user.departmentId === asset.departmentId;
+  return false;
+}
+
+export function allowedRequestActionTypesFor(asset, user, hasRole) {
+  return allowedRequestActionTypes(asset).filter(
+    (t) => t !== 'DISPOSAL' || canRequestDisposal(asset, user, hasRole)
+  );
+}
+
+export function canEditAsset(asset, user, hasRole) {
+  if (!asset || !user) return false;
+  if (hasRole('ADMIN')) return true;
+  if (hasRole('DIRECTOR')) return user.branchId != null && user.branchId === asset.branchId;
+  if (hasRole('MANAGER')) return user.departmentId === asset.departmentId;
+  return false;
+}
+
 /* ---------- Trang thai chung ---------- */
 
 export function Loading({ text = 'Đang tải…' }) {

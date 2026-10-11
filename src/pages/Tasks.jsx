@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { approvalTaskApi } from '../api/endpoints';
+import { useConfirm } from '../components/ConfirmDialog';
+import { useToast } from '../components/ToastProvider';
 import { Alert, Empty, Loading, Pagination, Panel, formatDateTime } from '../components/ui';
 
 const PAGE_SIZE = 20;
@@ -10,8 +12,9 @@ export default function Tasks() {
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [busyId, setBusyId] = useState(null);
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const load = useCallback(() => {
     setLoading(true);
@@ -36,15 +39,13 @@ export default function Tasks() {
 
   const decide = async (taskId, approve) => {
     setBusyId(taskId);
-    setError('');
-    setNotice('');
     try {
       if (approve) await approvalTaskApi.approve(taskId);
       else await approvalTaskApi.reject(taskId);
-      setNotice(approve ? 'Đã duyệt.' : 'Đã từ chối yêu cầu.');
+      toast.success(approve ? 'Đã duyệt.' : 'Đã từ chối yêu cầu.');
       await load();
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setBusyId(null);
     }
@@ -57,9 +58,6 @@ export default function Tasks() {
     <>
       <Alert kind="error" onDismiss={() => setError('')}>
         {error}
-      </Alert>
-      <Alert kind="success" onDismiss={() => setNotice('')}>
-        {notice}
       </Alert>
 
       <Panel title={`Chờ tôi duyệt (${total})`} bodyless>
@@ -96,7 +94,8 @@ export default function Tasks() {
                         <div className="cell-sub mono">{t.assetCode}</div>
                       </td>
                       <td>{t.requesterName}</td>
-                      <td>Bước {t.stepOrder}</td>
+                      {/* displayOrder: xem giai thich trong RequestDetail.jsx */}
+                      <td>Bước {t.displayOrder ?? t.stepOrder}</td>
                       <td>
                         <span className="badge badge-role">{t.roleName}</span>
                       </td>
@@ -113,8 +112,14 @@ export default function Tasks() {
                           <button
                             className="btn btn-sm btn-danger"
                             disabled={busyId === t.id}
-                            onClick={() => {
-                              if (confirm(`Từ chối yêu cầu #${t.approvalRequestId}?`)) {
+                            onClick={async () => {
+                              const ok = await confirm({
+                                title: 'Từ chối yêu cầu',
+                                message: `Từ chối yêu cầu #${t.approvalRequestId}?`,
+                                confirmText: 'Từ chối',
+                                danger: true,
+                              });
+                              if (ok) {
                                 decide(t.id, false);
                               }
                             }}

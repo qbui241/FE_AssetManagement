@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { branchApi, departmentApi, roleApi, stepApi, workflowApi } from '../api/endpoints';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../components/ConfirmDialog';
+import { useToast } from '../components/ToastProvider';
 import {
   Alert,
   Empty,
@@ -27,6 +29,8 @@ const SCOPE_LABEL = Object.fromEntries(SCOPES);
 export default function Workflows() {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('ADMIN');
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [workflows, setWorkflows] = useState([]);
   const [steps, setSteps] = useState([]);
@@ -35,7 +39,6 @@ export default function Workflows() {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [activeWorkflowId, setActiveWorkflowId] = useState(null);
 
   const [wfForm, setWfForm] = useState(null);
@@ -77,26 +80,41 @@ export default function Workflows() {
   );
 
   const removeWorkflow = async (w) => {
-    if (!confirm(`Xoá quy trình "${w.name}"? Các bước thuộc quy trình này cũng bị ảnh hưởng.`))
+    if (
+      !(await confirm({
+        title: 'Xoá quy trình',
+        message: `Xoá quy trình "${w.name}"? Các bước thuộc quy trình này cũng bị ảnh hưởng.`,
+        confirmText: 'Xoá',
+        danger: true,
+      }))
+    )
       return;
     try {
       await workflowApi.remove(w.id);
-      setNotice(`Đã xoá quy trình ${w.name}.`);
+      toast.success(`Đã xoá quy trình ${w.name}.`);
       setActiveWorkflowId(null);
       load();
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
   const removeStep = async (s) => {
-    if (!confirm(`Xoá bước ${s.stepOrder} (${s.roleName})?`)) return;
+    if (
+      !(await confirm({
+        title: 'Xoá bước duyệt',
+        message: `Xoá bước ${s.stepOrder} (${s.roleName})?`,
+        confirmText: 'Xoá',
+        danger: true,
+      }))
+    )
+      return;
     try {
       await stepApi.remove(s.id);
-      setNotice('Đã xoá bước duyệt.');
+      toast.success('Đã xoá bước duyệt.');
       load();
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -106,9 +124,6 @@ export default function Workflows() {
     <>
       <Alert kind="error" onDismiss={() => setError('')}>
         {error}
-      </Alert>
-      <Alert kind="success" onDismiss={() => setNotice('')}>
-        {notice}
       </Alert>
 
       <Panel
@@ -295,7 +310,7 @@ export default function Workflows() {
           onClose={() => setWfForm(null)}
           onSaved={() => {
             setWfForm(null);
-            setNotice('Đã lưu quy trình.');
+            toast.success('Đã lưu quy trình.');
             load();
           }}
         />
@@ -312,7 +327,7 @@ export default function Workflows() {
           onClose={() => setStepForm(null)}
           onSaved={() => {
             setStepForm(null);
-            setNotice('Đã lưu bước duyệt.');
+            toast.success('Đã lưu bước duyệt.');
             load();
           }}
         />

@@ -179,7 +179,8 @@ export default function Dashboard() {
                           Yêu cầu #{t.approvalRequestId}
                         </Link>
                       </td>
-                      <td>Bước {t.stepOrder}</td>
+                      {/* t la ApprovalTaskResponse - displayOrder: xem giai thich trong RequestDetail.jsx */}
+                      <td>Bước {t.displayOrder ?? t.stepOrder}</td>
                       <td>
                         <span className="badge badge-role">{t.roleName}</span>
                       </td>
@@ -233,7 +234,12 @@ export default function Dashboard() {
                       </div>
                       <div className="cell-sub mono">{r.assetCode}</div>
                     </td>
-                    <td>Bước {r.currentStepOrder}</td>
+                    {/* currentDisplayStepOrder: BE da tinh san, lien tuc 1,2,3...
+                        khac currentStepOrder goc co the co "khoang trong" khi
+                        1 buoc bi tu dong bo qua (trung phong ban nguoi yeu
+                        cau/tai san). Fallback currentStepOrder chi de phong du
+                        lieu rat cu chua co cot nay (BE da tu fallback roi). */}
+                    <td>Bước {r.currentDisplayStepOrder ?? r.currentStepOrder}</td>
                     <td>
                       <RequestStatusBadge status={r.status} />
                     </td>

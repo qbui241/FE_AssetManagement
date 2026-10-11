@@ -54,6 +54,7 @@ export default function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/assets" element={<Assets />} />
               <Route path="/assets/:id" element={<AssetDetail />} />
+              <Route path="/assets/:id/edit" element={<AssetDetail />} />
 
               <Route path="/requests" element={<Requests key="mine" scope="mine" />} />
               <Route

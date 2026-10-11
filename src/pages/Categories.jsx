@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { attributeApi, categoryApi } from '../api/endpoints';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../components/ConfirmDialog';
+import { useToast } from '../components/ToastProvider';
 import { Alert, Empty, Field, Loading, Modal, Panel } from '../components/ui';
 import { IconPencil, IconTrash } from '../components/icons';
 
@@ -17,12 +19,13 @@ export default function Categories() {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('ADMIN');
   const canDeleteCategory = hasRole('DIRECTOR');
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [categories, setCategories] = useState([]);
   const [attributes, setAttributes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
 
   const [catForm, setCatForm] = useState(null);
@@ -58,25 +61,40 @@ export default function Categories() {
   }, [attributes]);
 
   const removeCategory = async (c) => {
-    if (!confirm(`Xoá danh mục ${c.name}? Các thuộc tính thuộc danh mục này cũng bị ảnh hưởng.`))
+    if (
+      !(await confirm({
+        title: 'Xoá danh mục',
+        message: `Xoá danh mục ${c.name}? Các thuộc tính thuộc danh mục này cũng bị ảnh hưởng.`,
+        confirmText: 'Xoá',
+        danger: true,
+      }))
+    )
       return;
     try {
       await categoryApi.remove(c.id);
-      setNotice(`Đã xoá danh mục ${c.name}.`);
+      toast.success(`Đã xoá danh mục ${c.name}.`);
       load();
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
   const removeAttribute = async (a) => {
-    if (!confirm(`Xoá thuộc tính "${a.label}"?`)) return;
+    if (
+      !(await confirm({
+        title: 'Xoá thuộc tính',
+        message: `Xoá thuộc tính "${a.label}"?`,
+        confirmText: 'Xoá',
+        danger: true,
+      }))
+    )
+      return;
     try {
       await attributeApi.remove(a.id);
-      setNotice(`Đã xoá thuộc tính ${a.label}.`);
+      toast.success(`Đã xoá thuộc tính ${a.label}.`);
       load();
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -86,9 +104,6 @@ export default function Categories() {
     <>
       <Alert kind="error" onDismiss={() => setError('')}>
         {error}
-      </Alert>
-      <Alert kind="success" onDismiss={() => setNotice('')}>
-        {notice}
       </Alert>
 
       <div className="two-col">
@@ -255,7 +270,7 @@ export default function Categories() {
           onClose={() => setCatForm(null)}
           onSaved={() => {
             setCatForm(null);
-            setNotice('Đã lưu danh mục.');
+            toast.success('Đã lưu danh mục.');
             load();
           }}
         />
@@ -269,7 +284,7 @@ export default function Categories() {
           onClose={() => setAttrForm(null)}
           onSaved={() => {
             setAttrForm(null);
-            setNotice('Đã lưu thuộc tính.');
+            toast.success('Đã lưu thuộc tính.');
             load();
           }}
         />

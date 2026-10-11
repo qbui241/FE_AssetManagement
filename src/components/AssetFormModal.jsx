@@ -179,7 +179,7 @@ export default function AssetFormModal({ asset, categories, departments, onClose
             <input
               type="number"
               min="1"
-              step="1000"
+              step="1"
               value={form.value}
               onChange={(e) => setForm({ ...form, value: e.target.value })}
               required
