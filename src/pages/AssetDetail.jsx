@@ -439,6 +439,21 @@ export default function AssetDetail() {
                 <input value={asset.assignedToName || '—'} disabled />
               </Field>
             )}
+            {isBulk && asset.holders?.length > 0 && (
+              <Field label="Đang cấp phát cho">
+                <div style={{ display: 'grid', gap: 4 }}>
+                  {asset.holders.map((h) => (
+                    <div key={h.historyId}>
+                      <strong>{h.userName}</strong>
+                      <span className="cell-sub">
+                        {' '}· x{h.quantity}
+                        {h.departmentName ? ` · ${h.departmentName}` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Field>
+            )}
           </div>
 
           {defs.length > 0 && (

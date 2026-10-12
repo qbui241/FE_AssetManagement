@@ -62,6 +62,15 @@ export function IconPlus(props) {
   );
 }
 
+export function IconKey(props) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="7.5" cy="15.5" r="4.5" />
+      <path d="M10.5 12.5 19 4l2 2-2 2 1.5 1.5L19 11l-2-2-4.5 4.5" />
+    </svg>
+  );
+}
+
 export function IconShield(props) {
   return (
     <svg {...base} {...props}>

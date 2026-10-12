@@ -24,6 +24,12 @@ export const userApi = {
   update: (id, payload) => api.put(`/api/users/${id}`, payload),
   remove: (id) => api.del(`/api/users/${id}`),
   assignRole: (userId, roleId) => api.post(`/api/users/${userId}/roles/${roleId}`),
+  // Tu doi mat khau cua chinh minh - can mat khau hien tai de xac nhan.
+  changePassword: (currentPassword, newPassword) =>
+    api.post('/api/users/me/password', { currentPassword, newPassword }),
+  // ADMIN dat lai mat khau cho nguoi khac - khong can mat khau cu.
+  resetPassword: (userId, newPassword) =>
+    api.post(`/api/users/${userId}/reset-password`, { newPassword }),
 };
 
 export const assetApi = {
@@ -149,4 +155,6 @@ export const dashboardApi = {
 export const assetHistoryApi = {
   // params: { assetId, userId, openOnly, q, page, size } -> PageResponse
   list: (params) => api.get(`/api/asset-histories${qs(params)}`),
+  // Tai san dang su dung cua chinh nguoi dang nhap (khong can quyen quan ly).
+  mine: () => api.get('/api/asset-histories/mine'),
 };

@@ -7,6 +7,7 @@ const PAGE_META = {
   '/requests': { title: 'Yêu cầu của tôi', sub: 'Các đề xuất cấp phát và thanh lý bạn đã gửi' },
   '/requests/all': { title: 'Tất cả yêu cầu', sub: 'Toàn bộ yêu cầu trong phạm vi quản lý' },
   '/tasks': { title: 'Chờ tôi duyệt', sub: 'Các bước phê duyệt đang đợi quyết định của bạn' },
+  '/profile': { title: 'Hồ sơ cá nhân', sub: 'Thông tin tài khoản và các tài sản bạn đang sử dụng' },
   '/notifications': { title: 'Thông báo', sub: 'Cập nhật về yêu cầu và tài sản liên quan đến bạn' },
   '/admin/users': { title: 'Người dùng', sub: 'Tài khoản nội bộ và vai trò được gán' },
   '/admin/organization': { title: 'Chi nhánh & Phòng ban', sub: 'Cơ cấu tổ chức dùng cho phân quyền theo phạm vi' },
@@ -122,6 +123,9 @@ export default function Layout() {
           )}
 
           <div className="sidebar-group">Cá nhân</div>
+          <NavLink to="/profile" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            Hồ sơ & tài sản của tôi
+          </NavLink>
           <NavLink
             to="/notifications"
             className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
@@ -156,10 +160,24 @@ export default function Layout() {
             <h1>{meta.title}</h1>
             {meta.sub && <p>{meta.sub}</p>}
           </div>
-          <div className="bell">
-            <NavLink to="/notifications">Thông báo</NavLink>
+          {/* <div className="bell">
+            <NavLink to="/notifications" aria-label="Thông báo" title="Thông báo">
+              <svg
+                width="25"
+                height="25"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+            </NavLink>
             {unreadCount > 0 && <span className="count">{unreadCount}</span>}
-          </div>
+          </div> */}
         </header>
 
         <main className="content">

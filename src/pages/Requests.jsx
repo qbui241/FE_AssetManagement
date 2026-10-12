@@ -55,24 +55,38 @@ export default function Requests({ scope = 'mine' }) {
 
       <Panel
         title={scope === 'all' ? `Tất cả yêu cầu (${total})` : `Yêu cầu của tôi (${total})`}
-        actions={
-          <select
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(0);
-            }}
-          >
-            <option value="">Mọi trạng thái</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {LABEL[s]}
-              </option>
-            ))}
-          </select>
-        }
         bodyless
       >
+        <div className="panel-body" style={{ borderBottom: '1px solid var(--line)' }}>
+          <div className="filters">
+            <select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="">Mọi trạng thái</option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {LABEL[s]}
+                </option>
+              ))}
+            </select>
+            {status && (
+              <button
+                className="btn btn-sm"
+                onClick={() => {
+                  setStatus('');
+                  setPage(0);
+                }}
+              >
+                Xoá bộ lọc
+              </button>
+            )}
+          </div>
+        </div>
+
         {loading ? (
           <Loading />
         ) : requests.length === 0 ? (

@@ -18,6 +18,7 @@ import {
   formatMoney,
   useDebouncedValue,
 } from '../components/ui';
+import { HoldersCell } from '../components/ui';
 import { IconPencil, IconSend, IconTrash } from '../components/icons';
 import AssetFormModal from '../components/AssetFormModal';
 import RequestModal from '../components/RequestModal';
@@ -216,7 +217,8 @@ export default function Assets() {
                     <th className="num">Số lượng</th>
                     <th>Phòng ban</th>
                     <th>Trạng thái</th>
-                    <th className="actions-col">Thao tác</th>
+                    {canWrite && <th>Đang cấp phát cho</th>}
+                    {canWrite && <th className="actions-col">Thao tác</th>}
                     <th className="actions-col">Yêu cầu</th>
                   </tr>
                 </thead>
@@ -256,33 +258,40 @@ export default function Assets() {
                         <td>
                           <AssetStatusBadge status={a.status} />
                         </td>
+                        {canWrite && (
+                          <td>
+                            <HoldersCell asset={a} />
+                          </td>
+                        )}
+                        {canWrite && (
+                          <td className="actions-col">
+                            <div className="row-actions">
+                              {editable && (
+                                <button
+                                  className="icon-btn"
+                                  title="Sửa tài sản"
+                                  aria-label={`Sửa ${a.assetCode}`}
+                                  disabled={busyId === a.id}
+                                  onClick={() => navigate(`/assets/${a.id}/edit`)}
+                                >
+                                  <IconPencil />
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button
+                                  className="icon-btn danger"
+                                  title="Xoá tài sản"
+                                  aria-label={`Xoá ${a.assetCode}`}
+                                  disabled={busyId === a.id}
+                                  onClick={() => remove(a)}
+                                >
+                                  <IconTrash />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
 
-                        <td className="actions-col">
-                          <div className="row-actions">
-                            {editable && (
-                              <button
-                                className="icon-btn"
-                                title="Sửa tài sản"
-                                aria-label={`Sửa ${a.assetCode}`}
-                                disabled={busyId === a.id}
-                                onClick={() => navigate(`/assets/${a.id}/edit`)}
-                              >
-                                <IconPencil />
-                              </button>
-                            )}
-                            {canDelete && (
-                              <button
-                                className="icon-btn danger"
-                                title="Xoá tài sản"
-                                aria-label={`Xoá ${a.assetCode}`}
-                                disabled={busyId === a.id}
-                                onClick={() => remove(a)}
-                              >
-                                <IconTrash />
-                              </button>
-                            )}
-                          </div>
-                        </td>
 
                         <td className="actions-col">
                           <div className="row-actions">

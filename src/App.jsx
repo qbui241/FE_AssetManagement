@@ -18,6 +18,7 @@ import Categories from './pages/Categories';
 import Workflows from './pages/Workflows';
 import AuditLogs from './pages/AuditLogs';
 import AssetHistories from './pages/AssetHistories';
+import Profile from './pages/Profile';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -75,6 +76,7 @@ export default function App() {
                 }
               />
 
+              <Route path="/profile" element={<Profile />} />
               <Route path="/notifications" element={<Notifications />} />
 
               <Route

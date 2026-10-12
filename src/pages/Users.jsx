@@ -15,7 +15,7 @@ import {
   branchIdOf,
   useDebouncedValue,
 } from '../components/ui';
-import { IconPencil, IconShield, IconTrash } from '../components/icons';
+import { IconKey, IconPencil, IconShield, IconTrash } from '../components/icons';
 
 const ROLE_OPTIONS = ['MANAGER', 'DIRECTOR', 'ADMIN'];
 const PAGE_SIZE = 20;
@@ -24,6 +24,7 @@ export default function Users() {
   const { hasRole, user: me } = useAuth();
   const canWrite = hasRole('MANAGER', 'DIRECTOR', 'ADMIN');
   const canAssignRole = hasRole('DIRECTOR', 'ADMIN');
+  const canResetPassword = hasRole('ADMIN');
   const confirm = useConfirm();
   const toast = useToast();
 
@@ -42,6 +43,7 @@ export default function Users() {
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
   const [assigning, setAssigning] = useState(null);
+  const [resetting, setResetting] = useState(null);
 
   const keyword = useDebouncedValue(q.trim());
 
@@ -244,6 +246,17 @@ export default function Users() {
                               <IconPencil />
                             </button>
                           )}
+                          {canResetPassword && (
+                            <button
+                              className="icon-btn"
+                              title="Đặt lại mật khẩu"
+                              aria-label={`Đặt lại mật khẩu cho ${u.username}`}
+                              disabled={busyId === u.id}
+                              onClick={() => setResetting(u)}
+                            >
+                              <IconKey />
+                            </button>
+                          )}
                           {canWrite && (
                             <button
                               className="icon-btn danger"
@@ -303,7 +316,72 @@ export default function Users() {
           }}
         />
       )}
+
+      {resetting && (
+        <ResetPasswordModal
+          user={resetting}
+          onClose={() => setResetting(null)}
+          onSaved={() => {
+            setResetting(null);
+            toast.success(`Đã đặt lại mật khẩu cho ${resetting.username}.`);
+          }}
+        />
+      )}
     </>
+  );
+}
+
+function ResetPasswordModal({ user, onClose, onSaved }) {
+  const [newPassword, setNewPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setBusy(true);
+    try {
+      await userApi.resetPassword(user.id, newPassword);
+      onSaved();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={`Đặt lại mật khẩu cho ${user.username}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="btn" onClick={onClose} disabled={busy}>
+            Huỷ
+          </button>
+          <button type="submit" form="reset-password-form" className="btn btn-primary" disabled={busy}>
+            {busy ? 'Đang lưu…' : 'Đặt lại'}
+          </button>
+        </>
+      }
+    >
+      <Alert kind="error">{error}</Alert>
+      <p style={{ marginTop: 0, color: 'var(--ink-soft)' }}>
+        Đặt mật khẩu mới cho {user.name} — không cần biết mật khẩu cũ, dùng khi họ quên mật khẩu.
+      </p>
+      <form id="reset-password-form" onSubmit={submit}>
+        <Field label="Mật khẩu mới" required>
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            autoComplete="new-password"
+            minLength={6}
+            required
+          />
+        </Field>
+      </form>
+    </Modal>
   );
 }
 
@@ -360,8 +438,8 @@ function UserFormModal({ user, departments, onClose, onSaved }) {
 
       {editing && (
         <div className="alert alert-info">
-          Backend chỉ cập nhật họ tên, email và phòng ban. Tài khoản và mật khẩu không đổi được ở
-          đây.
+          Chỉ cập nhật họ tên, email và phòng ban ở đây. Tài khoản không đổi được; muốn đặt lại mật khẩu,
+          dùng nút “Đặt lại mật khẩu” (icon chìa khóa) trên bảng.
         </div>
       )}
 

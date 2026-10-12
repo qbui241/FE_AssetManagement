@@ -40,17 +40,8 @@ export default function Login() {
   return (
     <div className="auth-wrap">
       <aside className="auth-aside">
-        <h1>Theo dõi tài sản từ lúc nhập kho đến khi thanh lý</h1>
-        <p>
-          Đề xuất cấp phát, duyệt theo đúng thẩm quyền, và tra được ai đã làm gì với từng thiết bị.
-        </p>
-        <div className="flow">
-          <span>Sẵn sàng</span>
-          <span>Đang cấp phát</span>
-          <span>Bảo trì</span>
-          <span>Thu hồi</span>
-          <span>Thanh lý</span>
-        </div>
+        <h1>Hệ thống quản lý tài sản</h1>
+
       </aside>
 
       <div className="auth-main">

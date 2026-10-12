@@ -110,6 +110,39 @@ export function canEditAsset(asset, user, hasRole) {
   return false;
 }
 
+/**
+ * Danh sach nguoi dang giu tai san. Uu tien `holders` (cac luot muon chua tra)
+ * tu backend; neu khong co thi lui ve assignedToName cua tai san theo serial.
+ */
+export function assetHolders(asset) {
+  if (asset?.holders?.length) return asset.holders;
+  if (asset?.assignedToName) {
+    return [{ historyId: `a${asset.id}`, userName: asset.assignedToName, quantity: null }];
+  }
+  return [];
+}
+
+export function HoldersCell({ asset, max = 2 }) {
+  const holders = assetHolders(asset);
+  if (holders.length === 0) return <span style={{ color: 'var(--ink-faint)' }}>—</span>;
+  const shown = holders.slice(0, max);
+  const rest = holders.length - shown.length;
+  const title = holders
+    .map((h) => `${h.userName}${h.quantity ? ` (x${h.quantity})` : ''}`)
+    .join(', ');
+  return (
+    <div title={title}>
+      {shown.map((h) => (
+        <div key={h.historyId} className="cell-title">
+          {h.userName}
+          {h.quantity ? <span className="cell-sub"> · x{h.quantity}</span> : null}
+        </div>
+      ))}
+      {rest > 0 && <div className="cell-sub">+{rest} người khác</div>}
+    </div>
+  );
+}
+
 /* ---------- Trang thai chung ---------- */
 
 export function Loading({ text = 'Đang tải…' }) {
