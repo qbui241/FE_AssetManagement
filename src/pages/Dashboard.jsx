@@ -80,7 +80,7 @@ export default function Dashboard() {
         </div>
         {canApprove && (
           <div className="stat">
-            <div className="label">Chờ tôi duyệt</div>
+            <div className="label">Chờ duyệt</div>
             <div className="value pending">{tasksTotal}</div>
           </div>
         )}
@@ -147,7 +147,7 @@ export default function Dashboard() {
 
       {canApprove && (
         <Panel
-          title="Chờ tôi duyệt"
+          title="Chờ duyệt"
           description="Các bước phê duyệt đang đợi quyết định của bạn"
           actions={
             tasksTotal > 0 && (

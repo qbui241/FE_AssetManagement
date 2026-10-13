@@ -19,6 +19,7 @@ const SCOPES = [
   ['REQUESTER_DEPARTMENT', 'Phòng ban người yêu cầu'],
   ['ASSET_DEPARTMENT', 'Phòng ban của tài sản'],
   ['SPECIFIC_DEPARTMENT', 'Một phòng ban cụ thể'],
+  ['ASSET_BRANCH_DEPARTMENT', 'Phòng ban cùng tên theo chi nhánh của tài sản'],
   ['REQUESTER_BRANCH', 'Chi nhánh người yêu cầu'],
   ['ASSET_BRANCH', 'Chi nhánh của tài sản'],
   ['SPECIFIC_BRANCH', 'Một chi nhánh cụ thể'],
@@ -458,7 +459,9 @@ function StepModal({
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const needsDepartment = form.departmentScope === 'SPECIFIC_DEPARTMENT';
+  const needsDepartment =
+    form.departmentScope === 'SPECIFIC_DEPARTMENT' ||
+    form.departmentScope === 'ASSET_BRANCH_DEPARTMENT';
   const needsBranch = form.departmentScope === 'SPECIFIC_BRANCH';
 
   const submit = async (e) => {
@@ -557,7 +560,19 @@ function StepModal({
           </Field>
 
           {needsDepartment && (
-            <Field label="Phòng ban cụ thể" required>
+            <Field
+              label={
+                form.departmentScope === 'ASSET_BRANCH_DEPARTMENT'
+                  ? 'Phòng ban mẫu (so khớp theo tên ở đúng chi nhánh của tài sản)'
+                  : 'Phòng ban cụ thể'
+              }
+              required
+              hint={
+                form.departmentScope === 'ASSET_BRANCH_DEPARTMENT'
+                  ? 'Hệ thống sẽ tìm phòng CÙNG TÊN với phòng chọn ở đây, nhưng thuộc chi nhánh của tài sản đang xét — không dùng trực tiếp phòng này nếu khác chi nhánh.'
+                  : undefined
+              }
+            >
               <select
                 value={form.departmentId}
                 onChange={(e) => setForm({ ...form, departmentId: e.target.value })}

@@ -266,17 +266,15 @@ export default function Assets() {
                         {canWrite && (
                           <td className="actions-col">
                             <div className="row-actions">
-                              {editable && (
-                                <button
-                                  className="icon-btn"
-                                  title="Sửa tài sản"
-                                  aria-label={`Sửa ${a.assetCode}`}
-                                  disabled={busyId === a.id}
-                                  onClick={() => navigate(`/assets/${a.id}/edit`)}
-                                >
-                                  <IconPencil />
-                                </button>
-                              )}
+                              <button
+                                className="icon-btn"
+                                title={editable ? 'Sửa tài sản' : 'Bạn không có quyền sửa tài sản này'}
+                                aria-label={`Sửa ${a.assetCode}`}
+                                disabled={!editable || busyId === a.id}
+                                onClick={() => navigate(`/assets/${a.id}/edit`)}
+                              >
+                                <IconPencil />
+                              </button>
                               {canDelete && (
                                 <button
                                   className="icon-btn danger"

@@ -60,7 +60,7 @@ export default function Tasks() {
         {error}
       </Alert>
 
-      <Panel title={`Chờ tôi duyệt (${total})`} bodyless>
+      <Panel title={`Chờ duyệt (${total})`} bodyless>
         {loading && !result ? (
           <Loading />
         ) : tasks.length === 0 ? (

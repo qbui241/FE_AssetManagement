@@ -12,6 +12,7 @@ import {
   Panel,
   allowedRequestActionTypesFor,
   assetStatusLabel,
+  branchIdOf,
   canEditAsset,
   deptLabel,
 } from '../components/ui';
@@ -171,6 +172,13 @@ export default function AssetDetail() {
     }
   }
   const assigningNow = form.status === 'ASSIGNED' && asset.status !== 'ASSIGNED';
+
+  // Phong ban quan ly: chi ADMIN duoc doi (MANAGER/DIRECTOR thay doi it co
+  // y nghia that su - BE cung gan nhu khoa ho ve dung pham vi hien tai), va
+  // danh sach chi gom phong ban CUNG CHI NHANH voi tai san - doi chi nhanh
+  // qua dropdown nay de de nham lan, chu khong phai nghiep vu dang ho tro.
+  const canEditDepartment = canEdit && isAdmin;
+  const departmentOptions = departments.filter((d) => branchIdOf(d) === asset.branchId);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -418,15 +426,19 @@ export default function AssetDetail() {
                 ))}
               </select>
             </Field>
-            <Field label="Phòng ban quản lý" required>
+            <Field
+              label="Phòng ban quản lý"
+              required
+              hint={!readOnly && !isAdmin ? 'Chỉ "ADMIN" mới đổi được phòng ban quản lý.' : undefined}
+            >
               <select
                 value={form.departmentId}
-                disabled={readOnly}
+                disabled={!canEditDepartment}
                 onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
                 required
               >
                 <option value="">Chọn phòng ban</option>
-                {departments.map((d) => (
+                {departmentOptions.map((d) => (
                   <option key={d.id} value={d.id}>
                     {deptLabel(d)}
                   </option>

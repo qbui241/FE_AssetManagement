@@ -1210,6 +1210,10 @@ td.actions-col {
   margin-top: 0;
 }
 
+.two-col+.panel {
+  margin-top: 20px;
+}
+
 .chip-list {
   display: flex;
   gap: 5px;

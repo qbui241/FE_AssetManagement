@@ -6,7 +6,7 @@ const PAGE_META = {
   '/assets': { title: 'Tài sản', sub: 'Danh mục tài sản trong phạm vi bạn được xem' },
   '/requests': { title: 'Yêu cầu của tôi', sub: 'Các đề xuất cấp phát và thanh lý bạn đã gửi' },
   '/requests/all': { title: 'Tất cả yêu cầu', sub: 'Toàn bộ yêu cầu trong phạm vi quản lý' },
-  '/tasks': { title: 'Chờ tôi duyệt', sub: 'Các bước phê duyệt đang đợi quyết định của bạn' },
+  '/tasks': { title: 'Chờ duyệt', sub: 'Các bước phê duyệt đang đợi quyết định của bạn' },
   '/profile': { title: 'Hồ sơ cá nhân', sub: 'Thông tin tài khoản và các tài sản bạn đang sử dụng' },
   '/notifications': { title: 'Thông báo', sub: 'Cập nhật về yêu cầu và tài sản liên quan đến bạn' },
   '/admin/users': { title: 'Người dùng', sub: 'Tài khoản nội bộ và vai trò được gán' },
@@ -65,7 +65,7 @@ export default function Layout() {
                 Tất cả yêu cầu
               </NavLink>
               <NavLink to="/tasks" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-                Chờ tôi duyệt
+                Chờ duyệt
               </NavLink>
             </>
           )}
